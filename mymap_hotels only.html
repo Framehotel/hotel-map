@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Frame Hotel Map</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- ✅ Load Mapbox GL CSS and JS FIRST -->
+  <link
+    href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css"
+    rel="stylesheet"
+  />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+
+  <!-- ✅ Add Inter font from Google Fonts HERE -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+
+  <style>
+    body { margin: 0; padding: 0; }
+    #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+
+    /* ✅ Add this for ALL popup styling */
+   .custom-popup {
+  text-align: center;
+  font-family: Inter;
+  padding: 10px;
+}
+.custom-popup .address {
+  font-size: 0.75em;
+  font-weight: 400;
+  margin: 4px 0;
+}
+.custom-popup h3 {
+  margin: 0;
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.custom-popup p {
+  margin: 5px 0;
+  font-size: 0.95em;
+}
+.custom-marker img {
+  transition: transform 0.2s ease;
+}
+
+/* Hover scaling */
+.custom-marker.hover img {
+  transform: scale(1.3);
+}
+
+/* Clicked/locked scaling */
+.custom-marker.locked img {
+  transform: scale(1.3);
+}
+#legend {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(255, 255, 255, 0.20);
+  padding: 10px;
+  border-radius: 5px;
+  z-index: 1;
+  font-family: Inter, sans-serif;
+}
+
+#legend button {
+  display: flex;
+  align-items: center;
+  margin: 5px 0;
+  padding: 5px 10px;
+  cursor: pointer;
+  border: none;
+  background-color: #2f302f;
+  color: white;
+  border-radius: 3px;
+  font-size: 0.9em;
+  font-family: Inter, sans-serif;
+}
+
+#legend button img {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+}
+  </style>
+</head>
+<body>
+
+
+<div id="map"></div>
+   <script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoiZnJhbWVob3RlbCIsImEiOiJjbWN0ZGpjamEwNGFpMmtvaTg5MjVyeW82In0.4lypnDwBwqwQwbjbc0sGig';
+
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/framehotel/cmctkov2v00te01p6ac6q1a9v',
+      center: [-97.750224, 30.24948],
+      zoom: 16.82,
+      minZoom: 4,
+      maxZoom: 20
+    });
+// Disable scroll zoom by default
+map.scrollZoom.disable();
+
+// === Desktop: Show a tooltip if Ctrl is not pressed ===
+map.on('wheel', (e) => {
+  if (!e.originalEvent.ctrlKey) {
+    e.preventDefault();
+    showTooltip('Hold Ctrl and scroll to zoom the map');
+  }
+});
+
+// === Mobile: Show a one-time gesture tip ===
+let touchMessageShown = false;
+map.on('touchstart', (e) => {
+  if (e.points.length > 1 && !touchMessageShown) {
+    showTooltip('Use two fingers to move or zoom the map');
+    touchMessageShown = true;
+  }
+});
+
+// === Tooltip Utility ===
+function showTooltip(message) {
+  let tooltip = document.getElementById('map-tooltip');
+  if (!tooltip) {
+    tooltip = document.createElement('div');
+    tooltip.id = 'map-tooltip';
+    tooltip.style.position = 'absolute';
+    tooltip.style.bottom = '20px';
+    tooltip.style.left = '50%';
+    tooltip.style.transform = 'translateX(-50%)';
+    tooltip.style.background = 'rgba(0,0,0,0.7)';
+    tooltip.style.color = '#fff';
+    tooltip.style.padding = '6px 12px';
+    tooltip.style.borderRadius = '4px';
+    tooltip.style.fontSize = '0.9em';
+    tooltip.style.fontFamily = 'Inter, sans-serif';
+    tooltip.style.zIndex = 10;
+    document.body.appendChild(tooltip);
+  }
+
+  tooltip.innerText = message;
+  tooltip.style.opacity = '1';
+
+  clearTimeout(tooltip.timer);
+  tooltip.timer = setTimeout(() => {
+    tooltip.style.opacity = '0';
+  }, 2500);
+}
+
+    map.addControl(new mapboxgl.NavigationControl());
+
+// ===================
+// FRAME HOTEL - SoCo
+// ===================
+const popupSoCo = new mapboxgl.Popup({ offset: 25, closeOnClick: false }).setHTML(`
+  <div class="custom-popup">
+    <h3>Frame Hotel - SoCo</h3>
+    <p class="address">110 WEST ELIZABETH ST. | AUSTIN, TX 78704</p>
+Escape the city’s pace while staying in its heart.  Frame Hotel offers a private oasis
+on the corner of South Congress and W. Elizabeth, directly behind the Guero’s Oak Garden and adjacent to Austin’s famous boot block.</p>
+    <p><a target="_blank" href="https://www.google.com/maps/dir/?api=1&destination=30.24948,-97.750224">See Route</a></p>
+  </div>
+`);
+
+const elSoCo = document.createElement('div');
+elSoCo.className = 'custom-marker';
+elSoCo.innerHTML = `
+  <img src="https://raw.githubusercontent.com/Framehotel/my-map-icons/refs/heads/main/Color/Frame%20SoCo%20Icon.png" 
+       alt="Frame SoCo Icon" 
+       style="width: 40px; height: 40px;">
+`;
+
+const markerSoCo = new mapboxgl.Marker(elSoCo)
+
+  .setLngLat([-97.750715, 30.24936])
+  .setPopup(popupSoCo)
+  .addTo(map);
+
+let lockedSoCo = false;
+
+elSoCo.addEventListener('mouseenter', () => {
+  if (!lockedSoCo) {
+    elSoCo.classList.add('hover');
+    popupSoCo.addTo(map);
+  }
+});
+
+elSoCo.addEventListener('mouseleave', () => {
+  if (!lockedSoCo) {
+    elSoCo.classList.remove('hover');
+    popupSoCo.remove();
+  }
+});
+
+elSoCo.addEventListener('click', (e) => {
+  e.stopPropagation();
+  lockedSoCo = !lockedSoCo;
+  if (lockedSoCo) {
+    popupSoCo.addTo(map);
+    elSoCo.classList.add('locked');
+  } else {
+    popupSoCo.remove();
+    elSoCo.classList.remove('locked');
+  }
+});
+
+map.on('click', () => {
+  if (lockedSoCo) {
+    lockedSoCo = false;
+    popupSoCo.remove();
+    elSoCo.classList.remove('locked');
+  }
+});
+
+// =========================
+// FRAME HOTEL - Treehouse
+// =========================
+const popupTreehouse = new mapboxgl.Popup({ offset: 25, closeOnClick: false }).setHTML(`
+  <div class="custom-popup">
+    <h3>Frame Hotel - Treehouse</h3>
+    <p class="address">110 THE CIRCLE | AUSTIN, TX 78704</p>
+Escape the city’s pace while staying in its heart. Frame Hotel offers a
+private oasis directly behind South Congress Ave., the world-famous Continental Club, and Austin’s famous Amy’s Ice Cream.
+
+</p>
+    <p><a target="_blank" href="https://www.google.com/maps/dir/?api=1&destination=30.25006,-97.74838">See Route</a></p>
+  </div>
+`);
+
+const elTreehouse = document.createElement('div');
+elTreehouse.className = 'custom-marker';
+elTreehouse.innerHTML = `
+  <img src="https://raw.githubusercontent.com/Framehotel/my-map-icons/refs/heads/main/Color/Frame%20Treehouse.png" 
+       alt="Frame Treehouse Icon" 
+       style="width: 40px; height: 40px;">
+`;
+
+const markerTreehouse = new mapboxgl.Marker(elTreehouse)
+
+  .setLngLat([-97.74838, 30.25006])
+  .setPopup(popupTreehouse)
+  .addTo(map);
+
+let lockedTreehouse = false;
+
+elTreehouse.addEventListener('mouseenter', () => {
+  if (!lockedTreehouse) {
+    elTreehouse.classList.add('hover');
+    popupTreehouse.addTo(map);
+  }
+});
+
+elTreehouse.addEventListener('mouseleave', () => {
+  if (!lockedTreehouse) {
+    elTreehouse.classList.remove('hover');
+    popupTreehouse.remove();
+  }
+});
+
+elTreehouse.addEventListener('click', (e) => {
+  e.stopPropagation();
+  lockedTreehouse = !lockedTreehouse;
+  if (lockedTreehouse) {
+    popupTreehouse.addTo(map);
+    elTreehouse.classList.add('locked');
+  } else {
+    popupTreehouse.remove();
+    elTreehouse.classList.remove('locked');
+  }
+});
+
+map.on('click', () => {
+  if (lockedTreehouse) {
+    lockedTreehouse = false;
+    popupTreehouse.remove();
+    elTreehouse.classList.remove('locked');
+  }
+});
+  
+const allMarkers = [];
+
+places.forEach((place) => {
+  const popup = new mapboxgl.Popup({ offset: 25, closeOnClick: false }).setHTML(`
+    <div class="custom-popup">
+      <h3>${place.title}</h3>
+      <p>${place.description || ''}</p>
+      <p><a target="_blank" href="https://www.google.com/maps/dir/?api=1&destination=${place.coords[1]},${place.coords[0]}">See Route</a></p>
+    </div>
+  `);
+
+  // ================================
+  // ✅ Create a container div for marker
+  // ================================
+  const el = document.createElement('div');
+  el.className = 'custom-marker';
+
+  // Add the icon image inside
+  el.innerHTML = `<img src="${categoryIcons[place.category] || 'https://placehold.co/30x30'}" 
+                      alt="${place.category} Icon" 
+                      style="width: 30px; height: 30px;">`;
+
+  // ================================
+  // ✅ Create the Mapbox marker
+  // ================================
+  const marker = new mapboxgl.Marker(el)
+    .setLngLat(place.coords)
+    .setPopup(popup)
+    .addTo(map);
+    allMarkers.push({ marker, category: place.category });
+  let lockedOpen = false;
+
+  // ================================
+  // ✅ Hover in
+  // ================================
+  el.addEventListener('mouseenter', () => {
+    if (!lockedOpen) el.classList.add('hover');
+    if (!lockedOpen) popup.addTo(map);
+  });
+
+  // ================================
+  // ✅ Hover out
+  // ================================
+  el.addEventListener('mouseleave', () => {
+    if (!lockedOpen) el.classList.remove('hover');
+    if (!lockedOpen) popup.remove();
+  });
+
+  // ================================
+  // ✅ Click to lock/unlock
+  // ================================
+  el.addEventListener('click', (e) => {
+    e.stopPropagation();
+    lockedOpen = !lockedOpen;
+    if (lockedOpen) {
+      popup.addTo(map);
+      el.classList.add('locked');
+    } else {
+      popup.remove();
+      el.classList.remove('locked');
+    }
+  });
+
+  // ================================
+  // ✅ Optional: close lock if clicking map background
+  // ================================
+  map.on('click', () => {
+    if (lockedOpen) {
+      lockedOpen = false;
+      popup.remove();
+      el.classList.remove('locked');
+    }
+  });
+
+});  // ✅ This closes places.forEach
+
+// ================================
+// ✅ Define the filter function OUTSIDE the loop
+// ================================
+function filterMarkers(category) {
+  const bounds = new mapboxgl.LngLatBounds();
+  let hasVisible = false;
+
+  allMarkers.forEach(item => {
+    if (category === 'All' || item.category === category) {
+      item.marker.getElement().style.display = '';
+      bounds.extend(item.marker.getLngLat());
+      hasVisible = true;
+    } else {
+      item.marker.getElement().style.display = 'none';
+    }
+  });
+
+  if (hasVisible) {
+    map.fitBounds(bounds, {
+      padding: 50,     // space around the markers
+      maxZoom: 16,     // optional: limit maximum zoom
+      duration: 1000   // smooth animation
+    });
+  }
+}
+
+// ================================
+// ✅ Add event listeners to legend buttons
+// ================================
+document.querySelectorAll('#legend button').forEach(button => {
+  button.addEventListener('click', () => {
+    const selectedCategory = button.getAttribute('data-category');
+    filterMarkers(selectedCategory);
+  });
+});
+
+</script>
+</body>
+</html>
